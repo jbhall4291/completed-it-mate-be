@@ -1,6 +1,6 @@
 //userRoutes.ts
 import express from "express";
-import { getUsers, createUser, getUserById, addGameToUser } from "../controllers/userController";
+import { getUsers, createUser, getUserById, addGameToUser, removeGameFromUser } from "../controllers/userController";
 
 const router = express.Router();
 
@@ -13,5 +13,8 @@ router.get("/users/:id", getUserById);
 router.post("/users", createUser);
 
 router.post("/users/:id/games", addGameToUser)
+
+router.delete("/users/:id/games", removeGameFromUser)
+
 
 export default router;

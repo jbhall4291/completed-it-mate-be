@@ -1,12 +1,12 @@
 //User.ts
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   username: string;
   email: string;
   gamesOwned: {
-    gameId: mongoose.Schema.Types.ObjectId;  // Reference to the Game document
+    gameId: Types.ObjectId;  // Reference to the Game document
     status: "not started" | "in progress" | "completed" | "unknown";
   }[];
 }
