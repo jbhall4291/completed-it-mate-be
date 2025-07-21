@@ -1,4 +1,4 @@
-//index.ts
+// app.ts
 import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
@@ -11,10 +11,13 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Connect to MongoDB
-connectDB();
+if (!process.env.JEST_WORKER_ID) {
+  connectDB(); // Only connect if we're NOT in a Jest test
+}
 
-// Test route
+
+
+// A simple test route
 app.get("/", (req, res) => {
   res.send("Server is running! Hooray!!!");
 });
@@ -22,5 +25,4 @@ app.get("/", (req, res) => {
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+export default app;  // <-- Supertest will import this

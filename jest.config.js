@@ -1,3 +1,4 @@
+//jest.config.js
 const { createDefaultPreset } = require("ts-jest");
 
 const tsJestTransformCfg = createDefaultPreset().transform;
@@ -8,4 +9,5 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  setupFilesAfterEnv: ["<rootDir>/src/jest.setup.ts"],
 };
