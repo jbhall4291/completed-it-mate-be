@@ -3,6 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import cors from 'cors';
+import { checkApiKey } from "./middleware/checkApiKey";
 
 
 import userRoutes from "./routes/userRoutes";
@@ -18,16 +19,22 @@ app.use(cors({
   credentials: true                 
 }));
 
-if (!process.env.JEST_WORKER_ID) {
-  connectDB(); // Only connect if we're NOT in a Jest test
-}
-
 
 
 // A simple test route
 app.get("/", (req, res) => {
   res.send("Server is running! Hooray!!!");
 });
+
+
+app.use(checkApiKey); 
+
+
+if (!process.env.JEST_WORKER_ID) {
+  connectDB(); // Only connect if we're NOT in a Jest test
+}
+
+
 
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
