@@ -34,7 +34,7 @@ if (!process.env.JEST_WORKER_ID) {
   connectDB(); // Only connect if we're NOT in a Jest test
 }
 
-
+console.log('testing pipeline....')
 
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
