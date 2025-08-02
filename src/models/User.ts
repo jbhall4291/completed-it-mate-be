@@ -5,10 +5,12 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   username: string;
   email: string;
-  gamesOwned: {
-    gameId: Types.ObjectId;  // Reference to the Game document
+  gamesOwned: Game[];
+}
+
+type Game = {
+   gameId: Types.ObjectId;  // Reference to the Game document
     status: "not started" | "in progress" | "completed" | "unknown";
-  }[];
 }
 
 const UserSchema: Schema = new Schema({
