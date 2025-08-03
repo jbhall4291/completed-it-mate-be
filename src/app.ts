@@ -8,6 +8,7 @@ import { checkApiKey } from "./middleware/checkApiKey";
 
 import userRoutes from "./routes/userRoutes";
 import gameRoutes from "./routes/gameRoutes";
+import testRoutes from "./routes/testRoutes";
 
 dotenv.config();
 
@@ -41,5 +42,7 @@ console.log('testing pipeline....')
 
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
+
+app.use('/api', testRoutes);
 
 export default app;  // <-- Supertest will import this
