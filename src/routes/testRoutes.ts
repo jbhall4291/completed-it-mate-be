@@ -3,6 +3,6 @@ import { resetTestUserLibrary } from "../controllers/testController";
 
 const router = express.Router();
 
-router.post('/test/reset-library', resetTestUserLibrary);
+router.delete('/test/reset-library', resetTestUserLibrary);
 
 export default router;
