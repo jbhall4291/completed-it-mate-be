@@ -6,10 +6,11 @@
     "dev": "ts-node-dev --respawn --transpile-only --inspect=9229 src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --ci --detectOpenHandles"
+    "test": "jest --ci --detectOpenHandles",
+    "test:coverage": "jest --coverage --ci --detectOpenHandles"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=22"
   },
   "keywords": [],
   "author": "",

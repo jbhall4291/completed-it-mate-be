@@ -1,3 +1,4 @@
+// jest.setup.ts
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import connectDB from "./config/db";
