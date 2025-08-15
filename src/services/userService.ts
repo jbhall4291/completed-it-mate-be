@@ -95,3 +95,17 @@ export const removeGameFromUserService = async (userId: string, gameId: string) 
       })),
     };
 };
+
+
+export const addUserService = async (username: string, email: string) => {
+
+  // don't allow duplicate emails
+    const existingEmail = await UserModel.findOne({ email });
+    if (existingEmail) {
+      throw { status: 400, message: "email already exists on an existing user" };
+    }
+
+    const newUser = await UserModel.create({ username, email, gamesOwned: [] });
+
+    return newUser;
+};
