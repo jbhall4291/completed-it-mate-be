@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { UserModel } from "../models/User";
 import mongoose from "mongoose";
 import { GameModel } from "../models/Game";
-import { addGameToUserService, removeGameFromUserService } from "../services/userService";
+import { addGameToUserService, addUserService, removeGameFromUserService } from "../services/userService";
 
 
 export const getUsers = async (req: Request, res: Response) => {
@@ -51,13 +51,16 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   console.log('hit createUser!!')
+  const {username} = req.body;
+  const {email} = req.body;
   try {
-    const { username, email } = req.body;
-    const newUser = await UserModel.create({ username, email, gamesOwned: [] });
-  res.status(201).json(newUser);
-  } catch (error) {
-    res.status(400).json({ message: "Error creating user", error });
-  }
+    const createUser = await addUserService(username, email)
+  res.status(201).json(createUser);
+  } catch (error: any) {
+  res
+    .status(error.status || 400)
+    .json({ message: error.message || "Error creating user" });
+}
 };
 
 export const addGameToUser = async (req: Request, res: Response) => {
