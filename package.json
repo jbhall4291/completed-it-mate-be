@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest --ci --detectOpenHandles",
-    "test:coverage": "jest --coverage --ci --detectOpenHandles"
+    "test:coverage": "jest --coverage --ci --detectOpenHandles --coverageReporters=lcov"
   },
   "engines": {
     "node": ">=22"

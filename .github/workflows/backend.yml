@@ -25,7 +25,8 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npx jest --coverage --ci --detectOpenHandles
+        run: npx jest --coverage --ci --detectOpenHandles --coverageReporters=lcov
+
         env:
           JEST_WORKER_ID: test-runner
 
