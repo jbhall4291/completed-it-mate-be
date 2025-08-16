@@ -2,13 +2,9 @@ name: CI - Backend
 
 on:
   push:
-    branches: 
-      - dev
-      - main
+    branches: [main, dev]
   pull_request:
-    branches: 
-      - main
-    types: [opened, synchronize, reopened, closed]
+    branches: [main]
 
 jobs:
   test:
@@ -39,7 +35,6 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
-          flags: backend
           fail_ci_if_error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
