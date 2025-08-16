@@ -37,5 +37,4 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          
