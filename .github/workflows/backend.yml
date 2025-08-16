@@ -26,15 +26,20 @@ jobs:
 
       - name: Run tests with coverage
         run: npx jest --coverage --ci --detectOpenHandles --coverageReporters=lcov
-
         env:
           JEST_WORKER_ID: test-runner
 
-      
+      - name: Debug coverage output
+        run: |
+          echo "Listing coverage dir:"
+          ls -lh coverage || echo "No coverage dir"
+          echo "Preview lcov.info:"
+          head -20 coverage/lcov.info || echo "No lcov.info file"
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
