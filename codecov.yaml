@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 75%      # fail only if total coverage drops below this
+        threshold: 2%    # allow coverage to dip by up to 2% without failing
+    patch:
+      default:
+        target: 80%      # require higher coverage on *new/changed* lines
+        threshold: 1%
