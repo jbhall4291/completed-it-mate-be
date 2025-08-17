@@ -86,5 +86,25 @@ describe("DELETE /users/:id/games", () => {
     expect(res.body.gamesOwned[0].gameId).toBe(game2._id.toString());
   });
 
+  it("returns a 404 when trying to remove a game from a non-existant user's library", async () => {
+    const missingId = new mongoose.Types.ObjectId().toHexString();
+    const res = await request(app)
+      .delete(`/api/users/${missingId}/games`)
+      .send({ gameId })
+      .expect(404);
+
+    expect(res.body.message).toBe("User not found");
+  });
+
+  it("returns a 404 when trying to remove a non-existent game from a user's library", async () => {
+    const missingId = new mongoose.Types.ObjectId().toHexString();
+
+    const res = await request(app)
+      .delete(`/api/users/${userId}/games`)
+      .send({ gameId: missingId })
+      .expect(404);
+
+    expect(res.body.message).toBe("Game not found");
+  });
 
 });

@@ -126,3 +126,23 @@ export const addUserService = async (username: string, email: string) => {
 
   return newUser;
 };
+
+export const getUserByIdService = async (userId: string) => {
+
+  // is id valid?
+  validateObjectId(userId, "user");
+
+  const user = await UserModel.findById(userId).populate('gamesOwned.gameId').lean();
+
+  if (!user) {
+    throw { status: 404, message: "User not found" }
+  }
+
+  // Flatten gamesOwned so the UI doesn’t need to access .gameId
+  user.gamesOwned = user.gamesOwned.map((entry: any) => ({
+    status: entry.status,
+    ...entry.gameId,
+  }));
+
+  return user
+}
