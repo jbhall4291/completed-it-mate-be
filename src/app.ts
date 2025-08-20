@@ -20,29 +20,27 @@ app.use(cors({
     "http://localhost:3000",
     "https://completed-it-mate-fe.vercel.app"
   ],
-  credentials: true                 
+  credentials: true
 }));
 
 
 
-// A simple test route
+// A simple 'is alive' test route
 app.get("/", (req, res) => {
   res.send("Server is running! Hooray!!!");
 });
 
 
-app.use(checkApiKey); 
+app.use(checkApiKey);
 
-
+/* istanbul ignore next: bootstrap-only side effect for runtime, not under test */
 if (!process.env.JEST_WORKER_ID) {
-  connectDB(); // Only connect if we're NOT in a Jest test
+  connectDB(); // Only connect to actual DB if we're NOT in a Jest test
 }
-
-console.log('testing pipeline....')
 
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
 
 app.use('/api', testRoutes);
 
-export default app;  // <-- Supertest will import this
+export default app;
