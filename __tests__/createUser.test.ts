@@ -17,6 +17,7 @@ describe("POST /users", () => {
   it("adds a new user to the user collection", async () => {
     const res = await request(app)
       .post(`/api/users`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ username, email })
       .expect(201);
 
@@ -33,6 +34,7 @@ describe("POST /users", () => {
 
     const res = await request(app)
       .post("/api/users")
+      .set("x-api-key", process.env.API_KEY!)
       .send({ username, email })
       .expect(400);
 
@@ -47,6 +49,7 @@ describe("POST /users", () => {
 
     const res = await request(app)
       .post("/api/users")
+      .set("x-api-key", process.env.API_KEY!)
       .send({ username, email })
       .expect(400);
 
@@ -58,6 +61,7 @@ describe("POST /users", () => {
 
     const res = await request(app)
       .post("/api/users")
+      .set("x-api-key", process.env.API_KEY!)
       .send({ email: "x@test.com" }) // no username
       .expect(400);
 
@@ -67,6 +71,7 @@ describe("POST /users", () => {
   it("returns 400 when email is missing", async () => {
     const res = await request(app)
       .post("/api/users")
+      .set("x-api-key", process.env.API_KEY!)
       .send({ username })  // no email
       .expect(400);
 
@@ -79,6 +84,7 @@ describe("POST /users", () => {
 
     const res = await request(app)
       .post("/api/users")
+      .set("x-api-key", process.env.API_KEY!)
       .send({ username, email: "x@testcom" })
       .expect(422);
 

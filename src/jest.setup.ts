@@ -6,6 +6,7 @@ import connectDB from "./config/db";
 let mongo: MongoMemoryServer;
 
 beforeAll(async () => {
+  process.env.API_KEY = "test-secret";
   mongo = await MongoMemoryServer.create();
   const uri = mongo.getUri();
   await connectDB(uri);  // connect to the in-memory DB

@@ -31,11 +31,13 @@ describe("DELETE /users/:id/games", () => {
 
     await request(app)
       .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(200);
 
     const res = await request(app)
       .delete(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(200);
 
@@ -47,6 +49,7 @@ describe("DELETE /users/:id/games", () => {
 
     const res = await request(app)
       .delete(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(404);
 
@@ -79,6 +82,7 @@ describe("DELETE /users/:id/games", () => {
 
     const res = await request(app)
       .delete(`/api/users/${user._id}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId: game1._id })
       .expect(200);
 
@@ -90,6 +94,7 @@ describe("DELETE /users/:id/games", () => {
     const missingId = new mongoose.Types.ObjectId().toHexString();
     const res = await request(app)
       .delete(`/api/users/${missingId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(404);
 
@@ -101,6 +106,7 @@ describe("DELETE /users/:id/games", () => {
 
     const res = await request(app)
       .delete(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId: missingId })
       .expect(404);
 

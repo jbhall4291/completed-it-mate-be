@@ -31,6 +31,7 @@ describe("DELETE /test/reset-library", () => {
   it("returns a 204 and clears the test user's library", async () => {
     await request(app)
       .delete("/api/test/reset-library")
+      .set("x-api-key", process.env.API_KEY!)
       .expect(204);
 
     const user = await UserModel.findOne({ username: "test" });
@@ -43,6 +44,7 @@ describe("DELETE /test/reset-library", () => {
 
     const res = await request(app)
       .delete("/api/test/reset-library")
+      .set("x-api-key", process.env.API_KEY!)
       .expect(404);
 
     expect(res.text).toBe("Test user not found");
