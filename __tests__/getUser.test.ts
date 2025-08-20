@@ -26,6 +26,7 @@ describe("GET /users/:id", () => {
     it("returns an existing user with the given id", async () => {
         const res = await request(app)
             .get(`/api/users/${userId}`)
+            .set("x-api-key", process.env.API_KEY!)
             .expect(200);
 
         expect(res.body._id).toBe(userId);
@@ -36,6 +37,7 @@ describe("GET /users/:id", () => {
     it("returns a 400 when given an invalid user id", async () => {
         const res = await request(app)
             .get("/api/users/fakeID")
+            .set("x-api-key", process.env.API_KEY!)
             .expect(400);
 
         expect(res.body.message).toBe("Invalid user Id");
@@ -46,6 +48,7 @@ describe("GET /users/:id", () => {
         const missingId = new mongoose.Types.ObjectId().toHexString();
         const res = await request(app)
             .get(`/api/users/${missingId}`)
+            .set("x-api-key", process.env.API_KEY!)
             .expect(404);
 
         expect(res.body.message).toBe("User not found");
@@ -67,6 +70,7 @@ describe("GET /users/:id", () => {
 
         const res = await request(app)
             .get(`/api/users/${newUserId}`)
+            .set("x-api-key", process.env.API_KEY!)
             .expect(200);
 
         const ownedGame = res.body.gamesOwned[0];

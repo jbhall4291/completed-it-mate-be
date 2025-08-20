@@ -28,77 +28,84 @@ describe("POST /users/:id/games", () => {
   });
 
   it("adds a game to the user's library with correct details", async () => {
-  const res = await request(app)
-    .post(`/api/users/${userId}/games`)
-    .send({ gameId })
-    .expect(200);
+    const res = await request(app)
+      .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
+      .send({ gameId })
+      .expect(200);
 
-  expect(res.body.gamesOwned.length).toBe(1);
-  expect(res.body.gamesOwned[0].gameId.toString()).toBe(gameId);
-});
+    expect(res.body.gamesOwned.length).toBe(1);
+    expect(res.body.gamesOwned[0].gameId.toString()).toBe(gameId);
+  });
 
   it("returns a 404 if the user ID doesn't exist", async () => {
-      const fakeUserId = new mongoose.Types.ObjectId().toString();
+    const fakeUserId = new mongoose.Types.ObjectId().toString();
 
-  const res = await request(app)
-    .post(`/api/users/${fakeUserId}/games`)
-    .send({ gameId })
-    .expect(404);
+    const res = await request(app)
+      .post(`/api/users/${fakeUserId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
+      .send({ gameId })
+      .expect(404);
 
     expect(res.body.message).toBe("User not found");
 
-});
+  });
 
   it("returns a 404 if the game ID doesn't exist", async () => {
     const fakeGameId = new mongoose.Types.ObjectId().toString();
 
-  const res = await request(app)
-    .post(`/api/users/${userId}/games`)
-    .send({ gameId: fakeGameId })
-    .expect(404);
+    const res = await request(app)
+      .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
+      .send({ gameId: fakeGameId })
+      .expect(404);
 
     expect(res.body.message).toBe("Game not found");
 
-});
+  });
 
   it("returns a 400 if the user already owns the game", async () => {
 
     await request(app)
-    .post(`/api/users/${userId}/games`)
-    .send({ gameId })
-    .expect(200);
+      .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
+      .send({ gameId })
+      .expect(200);
 
     const res = await request(app)
       .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(400);
 
     expect(res.body.message).toBe("Game already owned");
 
-});
+  });
 
-it("returns a 400 if the game ID is invalid", async () => {
+  it("returns a 400 if the game ID is invalid", async () => {
 
-  
+
     const res = await request(app)
       .post(`/api/users/${userId}/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId: "banana" })
       .expect(400);
 
     expect(res.body.message).toBe("Invalid game Id");
 
-});
+  });
 
-it("returns a 400 if the user ID is invalid", async () => {
+  it("returns a 400 if the user ID is invalid", async () => {
 
-  
+
     const res = await request(app)
       .post(`/api/users/banana/games`)
+      .set("x-api-key", process.env.API_KEY!)
       .send({ gameId })
       .expect(400);
 
     expect(res.body.message).toBe("Invalid user Id");
 
-});
+  });
 
 });

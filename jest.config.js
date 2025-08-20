@@ -18,6 +18,7 @@ module.exports = {
   collectCoverage: true,
   collectCoverageFrom: [
     'src/**/*.{ts,js}',
+    "!src/server.ts",
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',         // don’t count test files
   ],
