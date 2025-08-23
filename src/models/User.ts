@@ -9,8 +9,8 @@ export interface IUser extends Document {
 }
 
 type Game = {
-   gameId: Types.ObjectId;  // Reference to the Game document
-    status: "not started" | "in progress" | "completed" | "unknown";
+  gameId: Types.ObjectId;  // Reference to the Game document
+  status: "not started" | "in progress" | "completed" | "unknown";
 }
 
 const UserSchema: Schema = new Schema({
