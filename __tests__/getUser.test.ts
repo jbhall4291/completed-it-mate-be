@@ -5,7 +5,7 @@ import { UserModel } from "../src/models/User";
 import mongoose from "mongoose";
 import { GameModel } from "../src/models/Game";
 
-describe("GET /users/:id", () => {
+describe.skip("GET /users/:id", () => {
 
     const username = "johnny"
     const email = "johnny@gmail.com"

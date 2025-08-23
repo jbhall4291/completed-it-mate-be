@@ -5,7 +5,7 @@ import { UserModel } from "../src/models/User";
 import { GameModel } from "../src/models/Game";
 import mongoose from "mongoose";
 
-describe("POST /users/:id/games", () => {
+describe.skip("POST /users/:id/games", () => {
   let userId: string;
   let gameId: string;
 

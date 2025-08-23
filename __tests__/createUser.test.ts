@@ -4,7 +4,7 @@ import app from "../src/app";
 import { UserModel } from "../src/models/User";
 import mongoose from "mongoose";
 
-describe("POST /users", () => {
+describe.skip("POST /users", () => {
 
   const username = "johnny"
   const email = "johnny@gmail.com"

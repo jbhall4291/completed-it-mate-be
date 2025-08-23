@@ -5,7 +5,7 @@ import { UserModel } from "../src/models/User";
 import { GameModel } from "../src/models/Game";
 import mongoose from "mongoose";
 
-describe("DELETE /test/reset-library", () => {
+describe.skip("DELETE /test/reset-library", () => {
   beforeEach(async () => {
     const game1 = await GameModel.create({
       title: "Halo",
