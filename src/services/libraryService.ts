@@ -3,6 +3,7 @@ import { UserModel } from "../models/User";
 import { GameModel } from "../models/Game";
 import { UserGameModel } from "../models/UserGame";
 import { validateObjectId } from "../utils/validators";
+import { GameStatus } from "../constants/gameStatus";
 
 export async function addToLibraryService(userId: string, gameId: string, status: string) {
     // Validate IDs
@@ -49,3 +50,21 @@ export async function removeFromLibraryService(userGameId: string) {
     if (!deleted) throw { status: 404, message: "Library item not found" };
 
 }
+
+
+export async function updateUserGameStatusService(
+    userGameId: string,
+    status: GameStatus
+) {
+    validateObjectId(userGameId, "userGame");
+
+    const updatedUserGame = await UserGameModel.findByIdAndUpdate(
+        userGameId,
+        { $set: { status } },
+        { new: true, runValidators: true, lean: true }
+    );
+
+    if (!updatedUserGame) throw { status: 404, message: "Library item not found" };
+    return updatedUserGame
+}
+

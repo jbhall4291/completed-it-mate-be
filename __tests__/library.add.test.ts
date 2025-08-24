@@ -39,6 +39,29 @@ describe("POST /api/library", () => {
         expect(res.body).toHaveProperty("status", "owned");
     });
 
+    it("adds a game to the user’s library with a non-default status of 'completed'", async () => {
+        const res = await request(app)
+            .post(`/api/library`)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ gameId, userId, status: "completed" });
+
+        expect(res.status).toBe(201);
+        // Expect a UserGame doc in the response
+        expect(res.body).toHaveProperty("userId", userId);
+        expect(res.body).toHaveProperty("gameId", gameId);
+        expect(res.body).toHaveProperty("status", "completed");
+    });
+
+    it("400 when adding with an invalid game status", async () => {
+        const res = await request(app)
+            .post(`/api/library`)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ gameId, userId, status: "banana" })
+            .expect(400);
+
+        expect(res.body.message).toBe("Invalid status");
+    });
+
 
     it("returns a 404 if the user ID doesn't exist", async () => {
         const fakeUserId = new mongoose.Types.ObjectId().toString();

@@ -1,11 +1,12 @@
 // UserGame.ts
 import mongoose, { Schema, Document, Types } from "mongoose";
+import { allowedStatuses, GameStatus } from "../constants/gameStatus";
 
 export interface IUserGame extends Document {
     _id: Types.ObjectId;
     userId: Types.ObjectId;
     gameId: Types.ObjectId;
-    status: "owned" | "wishlist" | "playing" | "completed" | "abandoned";
+    status: GameStatus;
 }
 
 const UserGameSchema: Schema = new Schema(
@@ -14,7 +15,7 @@ const UserGameSchema: Schema = new Schema(
         gameId: { type: Schema.Types.ObjectId, ref: "Game", required: true },
         status: {
             type: String,
-            enum: ["owned", "wishlist", "playing", "completed", "abandoned"],
+            enum: allowedStatuses,
             required: true
         }
     },
