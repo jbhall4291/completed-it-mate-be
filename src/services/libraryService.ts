@@ -41,3 +41,11 @@ export async function listLibraryService(userId: string) {
 
     return items;
 }
+
+export async function removeFromLibraryService(userGameId: string) {
+
+    validateObjectId(userGameId, "userGame");
+    const deleted = await UserGameModel.findByIdAndDelete(userGameId);
+    if (!deleted) throw { status: 404, message: "Library item not found" };
+
+}

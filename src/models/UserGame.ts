@@ -1,6 +1,8 @@
+// UserGame.ts
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IUserGame extends Document {
+    _id: Types.ObjectId;
     userId: Types.ObjectId;
     gameId: Types.ObjectId;
     status: "owned" | "wishlist" | "playing" | "completed" | "abandoned";
