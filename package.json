@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest --ci --detectOpenHandles",
-    "test:coverage": "jest --coverage --ci --detectOpenHandles --coverageReporters=lcov"
+    "test:coverage": "jest --coverage --ci --detectOpenHandles --coverageReporters=lcov",
+    "checkDB": "ts-node ./scripts/testMongoConnection.ts",
+    "seedTop50": "ts-node ./scripts/seedTop50.ts"
   },
   "engines": {
     "node": ">=22"
@@ -17,6 +19,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.11.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
