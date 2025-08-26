@@ -9,6 +9,7 @@ import { checkApiKey } from "./middleware/checkApiKey";
 import userRoutes from "./routes/userRoutes";
 import gameRoutes from "./routes/gameRoutes";
 import testRoutes from "./routes/testRoutes";
+import libraryRoutes from "./routes/libraryRoutes";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ if (!process.env.JEST_WORKER_ID) {
 
 app.use("/api", userRoutes);
 app.use("/api", gameRoutes);
+app.use("/api", libraryRoutes);
 
 app.use('/api', testRoutes);
 

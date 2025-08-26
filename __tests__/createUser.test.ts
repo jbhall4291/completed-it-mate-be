@@ -21,7 +21,6 @@ describe("POST /users", () => {
       .send({ username, email })
       .expect(201);
 
-    expect(res.body.gamesOwned.length).toBe(0);
     expect(res.body.username).toBe(username);
     expect(res.body.email).toBe(email);
     expect(res.body).toHaveProperty("_id");
