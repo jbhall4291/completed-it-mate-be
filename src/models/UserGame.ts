@@ -22,6 +22,9 @@ const UserGameSchema: Schema = new Schema(
     { timestamps: true }
 );
 
+UserGameSchema.index({ userId: 1 });                               // fast counts
+UserGameSchema.index({ userId: 1, gameId: 1 }, { unique: true });   // prevent duplicates
+
 export const UserGameModel = mongoose.model<IUserGame>(
     "UserGame",
     UserGameSchema
