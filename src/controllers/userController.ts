@@ -8,7 +8,7 @@ import { addGameToUserService, addUserService, getUserByIdService, removeGameFro
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const users = await UserModel.find();
+    const users = await UserModel.find().populate('gameCount').exec();
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Error fetching users", error });
@@ -23,7 +23,7 @@ export const getUserById = async (req: Request, res: Response) => {
   } catch (error: any) {
     res
       .status(error.status || 400)
-      .json({ message: error.message || "Error creating user" });
+      .json({ message: error.message || "Error getting user" });
   }
 };
 
