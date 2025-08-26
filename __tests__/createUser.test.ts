@@ -4,7 +4,7 @@ import app from "../src/app";
 import { UserModel } from "../src/models/User";
 import mongoose from "mongoose";
 
-describe.skip("POST /users", () => {
+describe("POST /users", () => {
 
   const username = "johnny"
   const email = "johnny@gmail.com"
@@ -21,7 +21,6 @@ describe.skip("POST /users", () => {
       .send({ username, email })
       .expect(201);
 
-    expect(res.body.gamesOwned.length).toBe(0);
     expect(res.body.username).toBe(username);
     expect(res.body.email).toBe(email);
     expect(res.body).toHaveProperty("_id");

@@ -9,13 +9,15 @@ import mongoose from "mongoose";
 describe("DELETE /api/library/:userGameId", () => {
 
     let userGameId: string;
+    let rawgSeq = 1;
 
     beforeEach(async () => {
         const game = await GameModel.create({
             title: "Halo Infinite",
             platform: "Xbox",
             releaseDate: "2021-12-08",
-            avgCompletionTime: 20
+            avgCompletionTime: 20,
+            rawgId: rawgSeq++,
         });
 
         const user = await UserModel.create({

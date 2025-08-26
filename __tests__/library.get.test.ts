@@ -6,10 +6,11 @@ import { GameModel } from "../src/models/Game";
 import { UserGameModel } from "../src/models/UserGame";
 import mongoose from "mongoose";
 
-describe.only("GET /api/library", () => {
+describe("GET /api/library", () => {
     let userId: string;
     let gameId1: string;
     let gameId2: string;
+    let rawgSeq = 1;
 
     beforeEach(async () => {
 
@@ -18,13 +19,15 @@ describe.only("GET /api/library", () => {
                 title: "Halo Infinite",
                 platform: "Xbox",
                 releaseDate: "2021-12-08",
-                avgCompletionTime: 20
+                avgCompletionTime: 20,
+                rawgId: rawgSeq++,
             }),
             GameModel.create({
                 title: "Doom",
                 platform: "PC",
                 releaseDate: "2016-05-13",
-                avgCompletionTime: 10
+                avgCompletionTime: 10,
+                rawgId: rawgSeq++,
             }),
 
         ])
@@ -38,7 +41,7 @@ describe.only("GET /api/library", () => {
         gameId1 = game1._id.toString();
         gameId2 = game2._id.toString();
 
-        await UserGameModel.create({ userId, gameId: gameId1, status: "owned" });
+        await UserGameModel.create({ userId, gameId: gameId1, status: "owned", });
         await UserGameModel.create({ userId, gameId: gameId2, status: "wishlist" });
 
     });

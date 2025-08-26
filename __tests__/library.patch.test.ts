@@ -10,13 +10,15 @@ describe("PATCH /api/library/:userGameId", () => {
     let userId: string;
     let gameId: string;
     let userGameId: string;
+    let rawgSeq = 1;
 
     beforeEach(async () => {
         const game = await GameModel.create({
             title: "Halo Infinite",
             platform: "Xbox",
             releaseDate: "2021-12-08",
-            avgCompletionTime: 20
+            avgCompletionTime: 20,
+            rawgId: rawgSeq++,
         });
 
         gameId = game._id.toString();
