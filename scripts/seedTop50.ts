@@ -11,10 +11,12 @@ const pickPlatform = (g: any) =>
     g.platforms?.[0]?.platform?.name || "Unknown";
 
 const mapRawgToGame = (g: any) => ({
+    rawgId: g.id,
     title: g.name,
     platform: pickPlatform(g),
     releaseDate: g.tba ? "TBA" : (g.released || "TBA"),
     avgCompletionTime: typeof g.playtime === "number" ? g.playtime : 0,
+    imageUrl: g.background_image || null,
 });
 
 async function run() {
@@ -27,9 +29,17 @@ async function run() {
 
     const docs = data.results.map(mapRawgToGame);
 
-    // quick-and-dirty insert (no upsert needed for this one-off)
-    await GameModel.insertMany(docs, { ordered: false });
-    console.log(`🎉 Inserted ${docs.length} games`);
+    const ops = docs.map((g: any) => ({
+        updateOne: {
+            filter: { rawgId: g.rawgId },     // match on RAWG id
+            update: { $set: g },              // overwrite fields
+            upsert: true,                     // insert if doesn’t exist
+        }
+    }));
+
+    const result = await GameModel.bulkWrite(ops);
+    console.log(`🎉 Upserted ${result.upsertedCount}, modified ${result.modifiedCount}`);
+
 
     await mongoose.disconnect();
     console.log("🔌 Disconnected");
