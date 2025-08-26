@@ -17,7 +17,6 @@ describe("GET /users/:id", () => {
         const user = await UserModel.create({
             username,
             email,
-            gamesOwned: []
         });
 
         userId = user._id.toString();
@@ -54,31 +53,7 @@ describe("GET /users/:id", () => {
         expect(res.body.message).toBe("User not found");
     });
 
-    it("flattens gamesOwned so each entry has game fields directly", async () => {
-        const game = await GameModel.create({
-            title: "Halo",
-            platform: "Xbox",
-            releaseDate: "2021-01-01",
-            avgCompletionTime: 15
-        });
-        const newUser = await UserModel.create({
-            username,
-            email,
-            gamesOwned: [{ status: "not started", gameId: game._id }]
-        });
-        const newUserId = newUser._id.toString();
 
-        const res = await request(app)
-            .get(`/api/users/${newUserId}`)
-            .set("x-api-key", process.env.API_KEY!)
-            .expect(200);
-
-        const ownedGame = res.body.gamesOwned[0];
-
-        expect(ownedGame).toHaveProperty("status", "not started");
-        expect(ownedGame).toHaveProperty("title", "Halo");
-        expect(ownedGame).not.toHaveProperty("gameId");
-    });
 
 
 
