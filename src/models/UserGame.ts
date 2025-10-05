@@ -15,17 +15,27 @@ const UserGameSchema: Schema = new Schema(
         gameId: { type: Schema.Types.ObjectId, ref: "Game", required: true },
         status: {
             type: String,
-            enum: allowedStatuses,
-            required: true
-        }
+            enum: allowedStatuses,              // ['owned','playing','completed','wishlist']
+            required: true,
+            default: 'owned',                   // optional, but handy
+        },
     },
     { timestamps: true }
 );
 
-UserGameSchema.index({ userId: 1 });                               // fast counts
-UserGameSchema.index({ userId: 1, gameId: 1 }, { unique: true });   // prevent duplicates
+// ✅ Integrity (keep)
+UserGameSchema.index({ userId: 1, gameId: 1 }, { unique: true });
 
-export const UserGameModel = mongoose.model<IUserGame>(
-    "UserGame",
-    UserGameSchema
-);
+// ✅ For library lists/sorts (replace the plain userId index with this)
+UserGameSchema.index({ userId: 1, status: 1, createdAt: -1 });
+
+// ✅ For completed-counts (critical for your aggregation)
+UserGameSchema.index({ gameId: 1, status: 1 });
+
+// (optional) If you only ever count 'completed', a partial index can shrink size:
+// UserGameSchema.index(
+//   { gameId: 1 },
+//   { partialFilterExpression: { status: 'completed' }, name: 'completed_by_game' }
+// );
+
+export const UserGameModel = mongoose.model<IUserGame>("UserGame", UserGameSchema);
