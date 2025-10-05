@@ -22,14 +22,14 @@ describe("DELETE /api/test/reset-library", () => {
 
     const game1 = await GameModel.create({
       title: "Halo",
-      platform: "Xbox",
+      parentPlatforms: ["xbox"],
       releaseDate: "2021-01-01",
       avgCompletionTime: 15,
       rawgId: rawgSeq++,
     });
     const game2 = await GameModel.create({
       title: "Doom",
-      platform: "PC",
+      parentPlatforms: ["pc"],
       releaseDate: "2016-05-13",
       avgCompletionTime: 12,
       rawgId: rawgSeq++,

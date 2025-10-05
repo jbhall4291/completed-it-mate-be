@@ -9,7 +9,7 @@ describe("searchGameTitlesService", () => {
         await GameModel.deleteMany({});
         await GameModel.create({
             title: "Halo Infinite",
-            platform: "Xbox",
+            parentPlatformsplatform: ["xbox"],
             releaseDate: "2021-12-08",
             avgCompletionTime: 20,
             rawgId: rawgSeq++,
