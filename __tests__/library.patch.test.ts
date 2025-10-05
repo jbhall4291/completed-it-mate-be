@@ -15,7 +15,7 @@ describe("PATCH /api/library/:userGameId", () => {
     beforeEach(async () => {
         const game = await GameModel.create({
             title: "Halo Infinite",
-            platform: "Xbox",
+            parentPlatforms: ["Xbox"],
             releaseDate: "2021-12-08",
             avgCompletionTime: 20,
             rawgId: rawgSeq++,
