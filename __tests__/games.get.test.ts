@@ -11,14 +11,14 @@ describe("GET /api/games/search", () => {
         await GameModel.deleteMany({});
         await GameModel.create({
             title: "Halo Infinite",
-            platform: "Xbox",
+            parentPlatforms: ["xbox"],
             releaseDate: "2021-12-08",
             avgCompletionTime: 20,
             rawgId: rawgSeq++,
         });
         await GameModel.create({
             title: "Grand Theft Auto 3",
-            platform: "Xbox",
+            parentPlatforms: ["xbox"],
             releaseDate: "2000-01-01",
             avgCompletionTime: 30,
             rawgId: rawgSeq++,

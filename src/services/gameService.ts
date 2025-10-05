@@ -4,6 +4,9 @@ import { GameModel } from "../models/Game";
 export async function searchGameTitlesService(titleQuery?: string) {
 
     const q = (titleQuery ?? "").trim();
+
+    console.log("got query:" + q)
+
     if (!q) return [];
 
     // escape regex metacharacters in user input
@@ -13,7 +16,7 @@ export async function searchGameTitlesService(titleQuery?: string) {
     return GameModel.find(
         { title: regex },
         // projection (optional): only send whats needed to the client
-        { title: 1, platform: 1, releaseDate: 1, avgCompletionTime: 1, rawgId: 1 }
+        { title: 1, parentPlatforms: 1, releaseDate: 1, avgCompletionTime: 1, rawgId: 1 }
     )
         .sort({ title: 1 })        // tweak as needed (e.g., popularity etc)        
         .lean();

@@ -17,14 +17,14 @@ describe("GET /api/library", () => {
         const [game1, game2] = await Promise.all([
             GameModel.create({
                 title: "Halo Infinite",
-                platform: "Xbox",
+                parentPlatforms: ["xbox"],
                 releaseDate: "2021-12-08",
                 avgCompletionTime: 20,
                 rawgId: rawgSeq++,
             }),
             GameModel.create({
                 title: "Doom",
-                platform: "PC",
+                parentPlatforms: ["pc"],
                 releaseDate: "2016-05-13",
                 avgCompletionTime: 10,
                 rawgId: rawgSeq++,
@@ -72,7 +72,7 @@ describe("GET /api/library", () => {
         // populated object, not just an ObjectId
         expect(typeof res.body[0].gameId).toBe("object");
         expect(res.body[0].gameId).toHaveProperty("title");
-        expect(res.body[0].gameId).toHaveProperty("platform");
+        expect(res.body[0].gameId).toHaveProperty("parentPlatforms");
 
         // sanity check values
         const titles = res.body.map((x: any) => x.gameId.title).sort();
