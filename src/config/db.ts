@@ -1,5 +1,6 @@
 // db.ts
 import mongoose from 'mongoose';
+import { UserModel } from '../models/User';
 
 const connectDB = async (mongoUri?: string) => {
   const uri = mongoUri || process.env.MONGO_URI;
@@ -21,10 +22,18 @@ const connectDB = async (mongoUri?: string) => {
   if (process.env.SKIP_INDEX_SYNC !== '1') {
     if (process.env.NODE_ENV !== 'production') {
       console.log('[DB] Syncing indexes (dev)…');
-      await Promise.all([UserGameModel.syncIndexes(), GameModel.syncIndexes()]);
+      await Promise.all([
+        UserModel.syncIndexes(),
+        UserGameModel.syncIndexes(),
+        GameModel.syncIndexes(),
+      ]);
     } else {
       console.log('[DB] Creating indexes (prod)…');
-      await Promise.all([UserGameModel.createIndexes(), GameModel.createIndexes()]);
+      await Promise.all([
+        UserModel.createIndexes(),
+        UserGameModel.createIndexes(),
+        GameModel.createIndexes(),
+      ]);
     }
     console.log('[DB] Indexes ready.');
   }

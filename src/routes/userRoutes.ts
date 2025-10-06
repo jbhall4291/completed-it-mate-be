@@ -1,16 +1,23 @@
 //userRoutes.ts
 import express from "express";
-import { getUsers, createUser, getUserById } from "../controllers/userController";
+import {
+    getUsers,
+    createUser,
+    getUserById,
+    postAnonymousUser,
+    getMe,
+    patchMe
+} from "../controllers/userController";
 
 const router = express.Router();
 
-// Route: GET /api/users
 router.get("/users", getUsers);
 
-router.get("/users/:id", getUserById);
+router.post("/users/anonymous", postAnonymousUser);
+router.get("/users/me", getMe);
+router.patch("/users/me", patchMe);
 
-// Route: POST /api/users
 router.post("/users", createUser);
-
+router.get("/users/:id", getUserById);
 
 export default router;
