@@ -2,6 +2,7 @@
 import { Types } from 'mongoose';
 import { GameModel } from '../models/Game';
 import { UserGameModel } from '../models/UserGame';
+import { isValidObjectId } from 'mongoose';
 
 // Stable card projection (what your cards actually need)
 const CARD_FIELDS = 'title imageUrl parentPlatforms releaseDate';
@@ -46,4 +47,39 @@ export async function searchGameTitlesService(titleQuery?: string) {
 
     const games = await fetchGames(filter);
     return attachCompletedCounts(games);
+}
+
+// services/gameService.ts
+export async function getGameDetailService(idOrSlug: string, userId?: string) {
+    const query = /^[0-9a-fA-F]{24}$/.test(idOrSlug)
+        ? { _id: idOrSlug }
+        : { slug: idOrSlug };
+
+    const game = await GameModel.findOne(query).lean();
+    if (!game) return null;
+
+    const [completedCount, userRel] = await Promise.all([
+        UserGameModel.countDocuments({ gameId: game._id, status: 'completed' }),
+        userId ? UserGameModel.findOne({ userId, gameId: game._id }).lean() : null,
+    ]);
+
+    return {
+        _id: String(game._id),
+        title: game.title,
+        imageUrl: game.imageUrl ?? null,
+        parentPlatforms: game.parentPlatforms ?? [],
+        releaseDate: game.releaseDate ? game.releaseDate.toISOString() : null,
+        avgCompletionTime: game.avgCompletionTime ?? 0,
+        genres: game.genres ?? [],
+        developers: game.developers ?? [],
+        publishers: game.publishers ?? [],
+        description: game.description ?? '',
+        screenshots: game.screenshots ?? [],
+        storeLinks: game.storeLinks ?? [],
+        metacritic: game.metacritic ?? null,
+        completedCount,
+        // 👇 per-user
+        userStatus: userRel?.status,
+        userGameId: userRel?._id ? String(userRel._id) : undefined,
+    };
 }
