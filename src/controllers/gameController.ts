@@ -1,6 +1,6 @@
 // controllers/gameController.ts
 import { Request, Response } from 'express';
-import { getAllGamesService, searchGameTitlesService, getGameDetailService, getGamesPagedService } from '../services/gameService';
+import { getAllGamesService, searchGameTitlesService, getGameDetailService, getGamesPagedService, getTopRatedGamesService, getLatestReleasesService } from '../services/gameService';
 
 export const getGames = async (req: Request, res: Response) => {
   try {
@@ -25,6 +25,31 @@ export const getGames = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error fetching games' });
   }
 };
+
+
+export const getTopRatedGames = async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? 5), 10) || 5, 1), 24);
+    const items = await getTopRatedGamesService(limit);
+    res.json(items);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching top rated games' });
+  }
+};
+
+export const getLatestReleases = async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? 5), 10) || 5, 1), 24);
+    const items = await getLatestReleasesService(limit);
+    res.json(items);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching latest releases' });
+  }
+};
+
+
 
 // need route for full details on a specific game, for game detail page
 export const getGameDetail = async (req: Request, res: Response) => {

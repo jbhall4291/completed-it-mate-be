@@ -94,6 +94,13 @@ export const patchMe = async (req: Request, res: Response) => {
     const user = await updateUsernameService(userId, username);
     return res.json(toSafeUser(user));
   } catch (error: any) {
-    return res.status(error.status || 400).json({ message: error.message || "Error updating username" });
+    // unique username violation
+    if (error?.code === 11000 || /duplicate key/i.test(String(error?.message))) {
+      return res.status(409).json({ message: "username already taken" });
+    }
+    console.error(error);
+    return res
+      .status(error?.status || 400)
+      .json({ message: error?.message || "Error updating username" });
   }
 };
