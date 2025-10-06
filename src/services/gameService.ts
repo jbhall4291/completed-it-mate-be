@@ -56,6 +56,34 @@ export async function searchGameTitlesService(titleQuery?: string) {
     return attachCompletedCounts(games);
 }
 
+export async function getTopRatedGamesService(limit = 5) {
+    const games = await GameModel.find({ 'metacritic.score': { $ne: null } })
+        .select('title imageUrl parentPlatforms releaseDate slug metacritic.score')
+        .sort({ 'metacritic.score': -1, title: 1 })
+        .limit(limit)
+        .lean({ virtuals: true });
+
+    return attachCompletedCounts(games);
+}
+
+/** Latest released titles up to now (future-dated excluded). */
+export async function getLatestReleasesService(limit = 5) {
+    const now = new Date();
+
+    // 🚫 exclude PC to avoid Steam shovelware for now
+    const exclude = ['pc']; // expand later if needed: ['pc','mac','linux']
+    const games = await GameModel.find({
+        releaseDate: { $ne: null, $lte: now },
+        parentPlatforms: { $nin: exclude },
+    })
+        .select('title imageUrl parentPlatforms releaseDate slug metacritic.score')
+        .sort({ releaseDate: -1, title: 1 })
+        .limit(limit)
+        .lean({ virtuals: true });
+
+    return attachCompletedCounts(games);
+}
+
 // services/gameService.ts
 export async function getGameDetailService(idOrSlug: string, userId?: string) {
     const query = /^[0-9a-fA-F]{24}$/.test(idOrSlug)

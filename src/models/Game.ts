@@ -23,6 +23,8 @@ const GameSchema = new Schema({
 
 /** 🔎 Indexes that actually help your queries */
 GameSchema.index({ title: 1 });
+GameSchema.index({ metacritic: -1, title: 1 });
+GameSchema.index({ releaseDate: -1, title: 1 });
 GameSchema.index({ parentPlatforms: 1 });
 GameSchema.index({ releaseDate: -1 });
 GameSchema.index({ slug: 1 }, { unique: true, sparse: true });
