@@ -10,6 +10,15 @@ const CARD_FIELDS = 'title imageUrl parentPlatforms releaseDate';
 // Escape regex metacharacters safely
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+type Paged<T> = { items: T[]; total: number; page: number; pageSize: number };
+
+function buildFilter(titleQuery?: string) {
+    if (!titleQuery?.trim()) return {};
+    return { title: { $regex: new RegExp(esc(titleQuery.trim()), 'i') } };
+}
+
+
+
 // --- shared helpers ---------------------------------------------------------
 
 async function fetchGames(filter: Record<string, any> = {}) {
@@ -19,14 +28,12 @@ async function fetchGames(filter: Record<string, any> = {}) {
 }
 
 async function attachCompletedCounts<T extends { _id: any }>(games: T[]) {
-    if (games.length === 0) return games.map(g => ({ ...g, completedCount: 0 }));
-
+    if (!games.length) return games.map(g => ({ ...g, completedCount: 0 }));
     const ids = games.map(g => new Types.ObjectId(g._id));
     const rows = await UserGameModel.aggregate([
         { $match: { gameId: { $in: ids }, status: 'completed' } },
         { $group: { _id: '$gameId', count: { $sum: 1 } } },
     ]);
-
     const map = new Map<string, number>(rows.map(r => [String(r._id), r.count as number]));
     return games.map(g => ({ ...g, completedCount: map.get(String(g._id)) ?? 0 }));
 }
@@ -82,4 +89,31 @@ export async function getGameDetailService(idOrSlug: string, userId?: string) {
         userStatus: userRel?.status,
         userGameId: userRel?._id ? String(userRel._id) : undefined,
     };
+}
+
+export async function getGamesPagedService({
+    titleQuery,
+    page,
+    pageSize,
+}: {
+    titleQuery?: string;
+    page: number;
+    pageSize: number;
+}): Promise<Paged<any>> {
+    const filter = buildFilter(titleQuery);
+    const skip = (page - 1) * pageSize;
+
+    const [itemsRaw, total] = await Promise.all([
+        GameModel.find(filter)
+            .select(CARD_FIELDS)
+            .sort({ title: 1 })
+            .collation({ locale: 'en', strength: 1 }) // case-insensitive sort
+            .skip(skip)
+            .limit(pageSize)
+            .lean({ virtuals: true }),
+        GameModel.countDocuments(filter),
+    ]);
+
+    const items = await attachCompletedCounts(itemsRaw);
+    return { items, total, page, pageSize };
 }
