@@ -19,7 +19,8 @@ app.use(express.json());
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://completed-it-mate-fe.vercel.app"
+    "https://completed-it-mate-fe.vercel.app",
+    "https://completeditmate.app"
   ],
   credentials: true
 }));
