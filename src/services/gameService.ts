@@ -71,7 +71,7 @@ export async function getLatestReleasesService(limit = 5) {
     const now = new Date();
 
     // 🚫 exclude PC to avoid Steam shovelware for now
-    const exclude = ['pc', 'mac', 'linux', 'web']; // expand later if needed: ['pc','mac','linux']
+    const exclude = ['pc', 'mac', 'linux', 'web', 'android']; // expand later if needed: ['pc','mac','linux']
     const games = await GameModel.find({
         releaseDate: { $ne: null, $lte: now },
         parentPlatforms: { $nin: exclude },
