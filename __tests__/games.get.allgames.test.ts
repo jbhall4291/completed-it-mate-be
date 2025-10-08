@@ -2,6 +2,8 @@
 import request from "supertest";
 import app from "../src/app";
 import { GameModel } from "../src/models/Game";
+import { Types } from "mongoose";
+import { UserGameModel } from "../src/models/UserGame";
 
 describe("GET /api/games", () => {
     let rawgSeq = 1;
@@ -152,17 +154,39 @@ describe("GET /api/games", () => {
     // --- 500 path ---
     it("returns 500 if GameModel.find throws", async () => {
         const originalFind = GameModel.find;
-        (GameModel.find as any) = jest.fn().mockImplementation(() => {
-            throw new Error("DB error");
+        try {
+            (GameModel.find as any) = jest.fn(() => { throw new Error("DB error"); });
+            const res = await request(app).get("/api/games").set("x-api-key", process.env.API_KEY!);
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual({ message: "Error fetching games" });
+        } finally {
+            GameModel.find = originalFind as any;
+        }
+    });
+
+
+
+    it("attaches completedCount in paged mode", async () => {
+        // throws if not found → no null in the type
+        const haloDoc = await GameModel.findOne({ title: "Halo Infinite" }).orFail();
+        const haloId = haloDoc._id;
+
+        await UserGameModel.deleteMany({});
+        await UserGameModel.create({
+            userId: new Types.ObjectId(),
+            gameId: haloId,
+            status: "completed",
         });
 
         const res = await request(app)
             .get("/api/games")
+            .query({ page: "1", pageSize: "10" })
             .set("x-api-key", process.env.API_KEY!);
 
-        expect(res.status).toBe(500);
-        expect(res.body).toEqual({ message: "Error fetching games" });
-
-        GameModel.find = originalFind;
+        expect(res.status).toBe(200);
+        const haloItem = res.body.items.find((g: any) => g.title === "Halo Infinite");
+        expect(haloItem).toBeTruthy();
+        expect(haloItem.completedCount).toBe(1);
     });
+
 });
