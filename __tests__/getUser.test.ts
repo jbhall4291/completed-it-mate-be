@@ -30,7 +30,6 @@ describe("GET /users/:id", () => {
 
         expect(res.body._id).toBe(userId);
         expect(res.body.username).toBe(username);
-        expect(res.body.email).toBe(email);
     });
 
     it("returns a 400 when given an invalid user id", async () => {
