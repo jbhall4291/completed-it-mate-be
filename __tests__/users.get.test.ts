@@ -9,12 +9,15 @@ describe("GET /api/users", () => {
     it("200 — returns users", async () => {
         const users = [{ _id: "1", username: "a" }];
 
-        // Mock the chained mongoose call: find().populate(...).exec()
-        jest.spyOn(UserModel, "find").mockReturnValueOnce({
-            populate: () => ({
-                exec: () => Promise.resolve(users),
-            }),
-        } as any);
+        const exec = jest.fn().mockResolvedValue(users);
+        const queryMock = {
+            select: jest.fn().mockReturnThis(),
+            populate: jest.fn().mockReturnThis(),
+            lean: jest.fn().mockReturnThis(),
+            exec,
+        };
+
+        jest.spyOn(UserModel, "find").mockReturnValueOnce(queryMock as any);
 
         const res = await request(app)
             .get("/api/users")
@@ -22,7 +25,13 @@ describe("GET /api/users", () => {
 
         expect(res.status).toBe(200);
         expect(res.body).toEqual(users);
+
+        // (optional) assert the chain was called
+        expect(queryMock.select).toHaveBeenCalledWith("-email -isRealUser");
+        expect(queryMock.populate).toHaveBeenCalledWith("gameCount");
+        expect(exec).toHaveBeenCalled();
     });
+
 
     it("500 — when query throws", async () => {
         jest.spyOn(UserModel, "find").mockReturnValueOnce({
