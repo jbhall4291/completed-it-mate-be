@@ -11,12 +11,13 @@ export interface IUser extends Document {
   gameCount?: number;
   createdAt: Date;
   updatedAt: Date;
+  isRealUser: boolean;
 }
 
 const UserSchema = new Schema<IUser>(
   {
     username: { type: String, default: null },
-    email: { type: String, default: null },
+    email: { type: String, default: null, select: false },
 
     usernameLower: {
       type: String,
@@ -38,6 +39,12 @@ const UserSchema = new Schema<IUser>(
     },
 
     lastSeenAt: { type: Date, default: () => new Date() },
+
+    isRealUser: {
+      type: Boolean,
+      default: true,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -46,7 +53,7 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// Counts matching UserGame docs
+// Count matching UserGame docs
 UserSchema.virtual("gameCount", {
   ref: "UserGame",
   localField: "_id",
@@ -59,11 +66,9 @@ UserSchema.pre("save", function (next) {
   next();
 });
 
-// new unique index (only applies when usernameLower is actually set)
 UserSchema.index(
   { usernameLower: 1 },
   { unique: true, partialFilterExpression: { usernameLower: { $type: "string" } } }
 );
-
 
 export const UserModel = mongoose.model<IUser>("User", UserSchema);
