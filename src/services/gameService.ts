@@ -4,6 +4,7 @@ import { GameModel } from '../models/Game';
 import { UserGameModel } from '../models/UserGame';
 import { isValidObjectId } from 'mongoose';
 
+
 // Stable card projection (what your cards actually need)
 const CARD_FIELDS = 'title imageUrl parentPlatforms releaseDate';
 
@@ -12,11 +13,85 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 type Paged<T> = { items: T[]; total: number; page: number; pageSize: number };
 
-function buildFilter(titleQuery?: string) {
-    if (!titleQuery?.trim()) return {};
-    return { title: { $regex: new RegExp(esc(titleQuery.trim()), 'i') } };
+type BrowseFilterInput =
+    | string                                                    // backward-compat: titleQuery
+    | {
+        q?: string;                                            // fuzzy title
+        platforms?: string[];                                  // e.g. ['pc','ps5']
+        genres?: string[];                                     // e.g. ['rpg','strategy']
+        years?: number[];                                      // explicit years (takes precedence over range)
+        yearMin?: number;                                      // range lower
+        yearMax?: number;                                      // range upper
+    }
+    | undefined;
+
+const PLATFORM_MAP: Record<string, string> = {
+    pc: 'pc',
+    playstation: 'playstation',
+    xbox: 'xbox',
+    switch: 'nintendo',          // RAWG parent = "nintendo"
+    nintendo: 'nintendo',
+    mac: 'mac',
+    linux: 'linux',
+    ios: 'ios',
+    android: 'android',
+    sega: 'sega',
+    'commodore-amiga': 'commodore-amiga',
+    'neo-geo': 'neo-geo',
+};
+
+function normPlatforms(arr: string[] = []) {
+    return Array.from(
+        new Set(
+            arr
+                .map(s => s.toLowerCase().trim())
+                .map(s => PLATFORM_MAP[s] ?? s)
+                .filter(Boolean)
+        )
+    );
 }
 
+function buildFilter(input?: BrowseFilterInput) {
+    // Old behaviour: string means "title contains"
+    if (typeof input === 'string') {
+        const q = input.trim();
+        if (!q) return {};
+        return { title: { $regex: new RegExp(esc(q), 'i') } };
+    }
+
+    // New object input
+    const filter: Record<string, any> = {};
+    if (!input) return filter;
+
+    const { q, platforms = [], genres = [], years = [], yearMin, yearMax } = input;
+
+    if (q && q.trim()) {
+        filter.title = { $regex: new RegExp(esc(q.trim()), 'i') };
+    }
+
+    if (platforms?.length) {
+        const vals = normPlatforms(platforms);
+        if (vals.length) filter.parentPlatforms = { $in: vals };
+    }
+
+    if (genres.length) {
+        filter.genres = { $in: genres };
+    }
+
+    if (years.length) {
+        filter.releasedYear = { $in: years };
+    } else if (
+        (typeof yearMin === 'number' && Number.isFinite(yearMin)) ||
+        (typeof yearMax === 'number' && Number.isFinite(yearMax))
+    ) {
+        const r: any = {};
+        if (typeof yearMin === 'number' && Number.isFinite(yearMin)) r.$gte = yearMin;
+        if (typeof yearMax === 'number' && Number.isFinite(yearMax)) r.$lte = yearMax;
+        if (Object.keys(r).length) filter.releasedYear = r;
+    }
+
+    return filter;
+}
 
 
 // --- shared helpers ---------------------------------------------------------
@@ -119,27 +194,35 @@ export async function getGameDetailService(idOrSlug: string, userId?: string) {
     };
 }
 
+
 export async function getGamesPagedService({
     titleQuery,
     page,
     pageSize,
+    filter,
+    sort,
 }: {
     titleQuery?: string;
     page: number;
     pageSize: number;
+    filter?: Record<string, any>;
+    sort?: Record<string, 1 | -1>;
 }): Promise<Paged<any>> {
-    const filter = buildFilter(titleQuery);
+    // Prefer explicit filter (from controller) if provided, else fall back to titleQuery-only
+    const effectiveFilter = (filter && Object.keys(filter).length ? filter : buildFilter(titleQuery)) ?? {};
+    const effectiveSort = sort ?? { 'metacritic.score': -1, releaseDate: -1, title: 1 };
+
     const skip = (page - 1) * pageSize;
 
     const [itemsRaw, total] = await Promise.all([
-        GameModel.find(filter)
+        GameModel.find(effectiveFilter)
             .select(CARD_FIELDS)
-            .sort({ title: 1 })
-            .collation({ locale: 'en', strength: 1 }) // case-insensitive sort
-            .skip(skip)
+            .sort(effectiveSort)                 // <-- sorting applied here
+            .collation({ locale: 'en', strength: 1 })
+            .skip((page - 1) * pageSize)
             .limit(pageSize)
             .lean({ virtuals: true }),
-        GameModel.countDocuments(filter),
+        GameModel.countDocuments(effectiveFilter),
     ]);
 
     const items = await attachCompletedCounts(itemsRaw);

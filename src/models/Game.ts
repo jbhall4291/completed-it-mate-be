@@ -28,6 +28,7 @@ GameSchema.index({ releaseDate: -1, title: 1 });
 GameSchema.index({ parentPlatforms: 1 });
 GameSchema.index({ releaseDate: -1 });
 GameSchema.index({ slug: 1 }, { unique: true, sparse: true });
+GameSchema.index({ genres: 1 });
 
 export type IGame = InferSchemaType<typeof GameSchema> & { _id: Types.ObjectId };
 export const GameModel = mongoose.model<IGame>("Game", GameSchema);
