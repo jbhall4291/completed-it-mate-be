@@ -93,7 +93,7 @@ export const getGames = async (req: Request, res: Response) => {
       filter.title = { $regex: escaped, $options: 'i' };
     }
 
-    // ✅ correct field for your schema
+
     if (platforms.length) {
       filter.parentPlatforms = { $in: platforms };
     }
@@ -102,14 +102,22 @@ export const getGames = async (req: Request, res: Response) => {
       filter.genres = { $in: genres };
     }
 
-    // ✅ your schema uses releaseDate: Date (not releasedYear)
+    const isNum = (v: unknown): v is number =>
+      typeof v === 'number' && Number.isFinite(v);
+
     if (yearsList.length) {
       filter.releaseDate = { $ne: null };
-      filter.$expr = { $in: [{ $year: '$releaseDate' }, yearsList] };
-    } else if (Number.isFinite(yearMin) || Number.isFinite(yearMax)) {
+      filter.$expr = { $in: [{ $year: "$releaseDate" }, yearsList] };
+    } else {
       const r: any = {};
-      if (Number.isFinite(yearMin)) r.$gte = new Date(yearMin, 0, 1);
-      if (Number.isFinite(yearMax)) r.$lt = new Date(yearMax + 1, 0, 1);
+      if (isNum(yearMin)) {
+        const yMin = Math.trunc(yearMin);
+        r.$gte = new Date(yMin, 0, 1);
+      }
+      if (isNum(yearMax)) {
+        const yMax = Math.trunc(yearMax);
+        r.$lt = new Date(yMax + 1, 0, 1); // exclusive upper bound
+      }
       if (Object.keys(r).length) filter.releaseDate = r;
     }
 
@@ -135,7 +143,7 @@ export const getGames = async (req: Request, res: Response) => {
 
     const sortKey = typeof req.query.sort === 'string'
       ? req.query.sort
-      : (isBlankLanding ? 'metacritic-desc' : 'title-asc'); // or keep your previous default
+      : (isBlankLanding ? 'metacritic-desc' : 'title-asc'); // or keep  previous default
     const sort = SORT_MAP[sortKey] ?? SORT_MAP['metacritic-desc'];
 
     const data = await getGamesPagedService({ titleQuery, page, pageSize, filter, sort });
