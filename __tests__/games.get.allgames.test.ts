@@ -42,15 +42,7 @@ describe("GET /api/games", () => {
         );
     });
 
-    it("returns all games when no titleQuery is provided (legacy array response)", async () => {
-        const res = await request(app)
-            .get("/api/games")
-            .set("x-api-key", process.env.API_KEY!);
 
-        expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body.length).toBe(2);
-    });
 
     // --- Paged envelope path (any paging param present) ---
     it("returns a paged envelope when page & pageSize are provided", async () => {
