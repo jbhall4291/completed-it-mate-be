@@ -36,7 +36,7 @@ export async function listLibraryService(userId: string) {
     const items = await UserGameModel.find({ userId })
         .populate({
             path: "gameId",
-            select: "title imageUrl parentPlatforms releaseDate avgCompletionTime",
+            select: "title imageUrl parentPlatforms releaseDate avgCompletionTime genres",
         })
         .lean();
 
