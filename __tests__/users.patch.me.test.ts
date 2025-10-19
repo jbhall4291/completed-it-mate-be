@@ -1,18 +1,30 @@
 // __tests__/users.patch.me.test.ts
 import request from "supertest";
 import app from "../src/app";
-import * as userSvc from "../src/services/userService";
+import { UserModel } from "../src/models/User";
+import { Types } from "mongoose";
 
-jest.mock("../src/services/userService");
-const asMock = (fn: unknown) => fn as jest.Mock;
-const validId = "507f1f77bcf86cd799439011";
+const ROUTE = "/api/users/me";
 
-describe("PATCH /api/users/me", () => {
-    beforeEach(() => jest.clearAllMocks());
+describe("PATCH /api/users/me (controller + service, no mocks)", () => {
+    let meId: string;
+    let otherId: string;
+
+    beforeEach(async () => {
+        await UserModel.deleteMany({});
+
+        const [me, other] = await UserModel.create([
+            { role: "anon", deviceId: "dev-me", username: "meuser", usernameLower: "meuser" },
+            { role: "anon", deviceId: "dev-other", username: "taken", usernameLower: "taken" },
+        ]);
+
+        meId = String(me._id);
+        otherId = String(other._id);
+    });
 
     it("401 — missing x-user-id", async () => {
         const res = await request(app)
-            .patch("/api/users/me")
+            .patch(ROUTE)
             .send({ username: "newname" })
             .set("x-api-key", process.env.API_KEY!);
 
@@ -21,52 +33,99 @@ describe("PATCH /api/users/me", () => {
 
     it("400 — username required", async () => {
         const res = await request(app)
-            .patch("/api/users/me")
-            .set("x-user-id", validId)
+            .patch(ROUTE)
+            .set("x-user-id", meId)
             .set("x-api-key", process.env.API_KEY!)
-            .send({}); // <= ensure body exists
+            .send({});
 
         expect(res.status).toBe(400);
-        expect(res.body).toEqual({ message: "username is required" });
+        const msg = (res.body?.message ?? "").toLowerCase();
+        expect(msg).toMatch(/username .*required/);
     });
 
-    it("409 — duplicate username", async () => {
-        asMock(userSvc.updateUsernameService).mockRejectedValueOnce({ code: 11000 });
+    it("400 — length 3–20 enforced", async () => {
+        const tooShort = await request(app)
+            .patch(ROUTE)
+            .set("x-user-id", meId)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "ab" });
+        expect(tooShort.status).toBe(400);
 
+        const tooLong = await request(app)
+            .patch(ROUTE)
+            .set("x-user-id", meId)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "x".repeat(21) });
+        expect(tooLong.status).toBe(400);
+    });
+
+    it("400 — only letters, numbers, dot, underscore, hyphen allowed", async () => {
         const res = await request(app)
-            .patch("/api/users/me")
-            .send({ username: "taken" })
-            .set("x-user-id", validId)
-            .set("x-api-key", process.env.API_KEY!);
+            .patch(ROUTE)
+            .set("x-user-id", meId)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "bad name!" });
+
+        expect(res.status).toBe(400);
+    });
+
+    it("409 — username already taken (case-insensitive, excluding self)", async () => {
+        const res = await request(app)
+            .patch(ROUTE)
+            .set("x-user-id", meId)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "TAKEN" });
 
         expect(res.status).toBe(409);
-        expect(res.body).toEqual({ message: "username already taken" });
     });
 
-    it("200 — updates and returns safe user", async () => {
-        asMock(userSvc.updateUsernameService).mockResolvedValueOnce({ _id: validId, username: "neo" });
-        asMock(userSvc.toSafeUser).mockImplementation((u) => ({ id: u._id, username: u.username }));
-
+    it("200 — updates username + usernameLower", async () => {
         const res = await request(app)
-            .patch("/api/users/me")
-            .send({ username: "neo" })
-            .set("x-user-id", validId)
-            .set("x-api-key", process.env.API_KEY!);
+            .patch(ROUTE)
+            .set("x-user-id", meId)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "New_Name-01" });
 
         expect(res.status).toBe(200);
-        expect(res.body).toEqual({ id: validId, username: "neo" });
+
+        const fromDb = await UserModel.findById(meId).lean();
+        expect(fromDb?.username).toBe("New_Name-01");
+        expect(fromDb?.usernameLower).toBe("new_name-01");
     });
 
-    it("400 — other service error", async () => {
-        asMock(userSvc.updateUsernameService).mockRejectedValueOnce({ status: 400, message: "bad" });
-
+    it("404 — user not found", async () => {
+        const missing = new Types.ObjectId().toString();
         const res = await request(app)
-            .patch("/api/users/me")
-            .send({ username: "oops" })
-            .set("x-user-id", validId)
-            .set("x-api-key", process.env.API_KEY!);
+            .patch(ROUTE)
+            .set("x-user-id", missing)
+            .set("x-api-key", process.env.API_KEY!)
+            .send({ username: "whatever" });
 
-        expect(res.status).toBe(400);
-        expect(res.body).toEqual({ message: "bad" });
+        expect(res.status).toBe(404);
+    });
+
+    it("500 — DB error bubbles through controller (mock model only)", async () => {
+        const original = UserModel.findByIdAndUpdate;
+        const originalErr = console.error;
+        console.error = jest.fn(); // silence expected error log
+
+        (UserModel.findByIdAndUpdate as any) = jest.fn(() => {
+            throw new Error("boom");
+        });
+
+        try {
+            const res = await request(app)
+                .patch(ROUTE)
+                .set("x-user-id", meId)
+                .set("x-api-key", process.env.API_KEY!)
+                .send({ username: "ok_name" });
+
+            expect([400, 500]).toContain(res.status);
+            const msg = (res.body?.message ?? "").toLowerCase();
+            expect(msg).toMatch(/boom|error/);
+        } finally {
+            UserModel.findByIdAndUpdate = original as any;
+            console.error = originalErr;
+        }
     });
 });

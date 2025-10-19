@@ -103,7 +103,10 @@ async function fetchGames(filter: Record<string, any> = {}) {
 }
 
 async function attachCompletedCounts<T extends { _id: any }>(games: T[]) {
-    if (!games.length) return games.map(g => ({ ...g, completedCount: 0 }));
+    if (games.length === 0) {
+        return [] as Array<T & { completedCount: number }>;
+    }
+
     const ids = games.map(g => new Types.ObjectId(g._id));
     const rows = await UserGameModel.aggregate([
         { $match: { gameId: { $in: ids }, status: 'completed' } },
@@ -228,3 +231,6 @@ export async function getGamesPagedService({
     const items = await attachCompletedCounts(itemsRaw);
     return { items, total, page, pageSize };
 }
+
+/* istanbul ignore next: exported for unit tests only */
+export { buildFilter, normPlatforms, attachCompletedCounts };
