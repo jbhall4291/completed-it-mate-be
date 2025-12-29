@@ -9,7 +9,8 @@
     "test": "jest --ci --detectOpenHandles",
     "test:coverage": "jest --coverage --ci --detectOpenHandles --coverageReporters=lcov",
     "checkDB": "ts-node ./scripts/testMongoConnection.ts",
-    "seed10k": "ts-node ./scripts/seed10k.ts"
+    "seed10k": "ts-node ./scripts/seed10k.ts",
+    "seed:latest": "ts-node ./scripts/seedLatest.ts"
   },
   "engines": {
     "node": ">=22"

@@ -1,4 +1,4 @@
-// scripts/seedTop10k.ts
+// scripts/seedLatest.ts
 import 'dotenv/config';
 import axios, { AxiosResponse } from 'axios';
 import mongoose from 'mongoose';
@@ -9,10 +9,13 @@ const KEY = process.env.RAWG_API_KEY!;
 const RAWG = 'https://api.rawg.io/api';
 
 const PAGE_SIZE = 40;
-const BATCH = 8;                // "concurrency" via chunking loop
-const PAGE_DELAY_MS = 120;      // polite delay between list pages
-const CHUNK_WRITE = 1000;       // bulkWrite chunk size
-const TARGET_COUNT = 10_000;    // final cap
+const BATCH = 6;                // "concurrency" via chunking loop
+const PAGE_DELAY_MS = 150;      // polite delay between list pages
+const CHUNK_WRITE = 500;       // bulkWrite chunk size
+const LATEST_LIMIT = 400; // how many games should we limit to?
+
+const d = (x: Date) => x.toISOString().slice(0, 10);
+
 
 type List = {
     id: number; slug: string; name: string;
@@ -91,86 +94,25 @@ async function fetchListSegment(limit: number, params: Record<string, any>, labe
     return limit ? out.slice(0, limit) : out;
 }
 
-/* ---------------------------------------------------
-   Ensure-by-slug-or-search (to guarantee Pong, etc.)
----------------------------------------------------*/
-async function ensureBySlugOrSearch(namesOrSlugs: string[], opts?: { dates?: string }) {
-    const found: List[] = [];
-    const seen = new Set<number>();
-
-    for (const s of namesOrSlugs) {
-        try {
-            const res = await safeGet<List>(`${RAWG}/games/${s}`, {}, `ensure slug ${s}`);
-            if (res.data && !seen.has((res.data as any).id)) {
-                found.push(res.data as any);
-                seen.add((res.data as any).id);
-            }
-            await delay(60);
-        } catch { /* ignore */ }
-    }
-
-    for (const q of namesOrSlugs) {
-        try {
-            const res = await safeGet<{ results: List[] }>(
-                `${RAWG}/games`,
-                {
-                    search: q,
-                    search_exact: true,
-                    page: 1,
-                    page_size: 5,
-                    ...(opts?.dates ? { dates: opts.dates } : {}),
-                    ordering: 'released',
-                },
-                `ensure search "${q}"`
-            );
-            for (const r of res.data?.results ?? []) {
-                if (!seen.has(r.id)) {
-                    found.push(r);
-                    seen.add(r.id);
-                }
-            }
-            await delay(60);
-        } catch { /* ignore */ }
-    }
-    return found;
-}
 
 /* ---------------------------------------------------
-   Combined sources (~12k pre-dedupe -> slice to 10k)
+   Get latest releases, last 90 days
 ---------------------------------------------------*/
-async function fetchCombined(): Promise<List[]> {
+async function fetchLatest(): Promise<List[]> {
     const today = new Date();
-    const d = (x: Date) => x.toISOString().slice(0, 10);
-    const twoYearsAgo = new Date(today); twoYearsAgo.setFullYear(today.getFullYear() - 2);
+    const from = new Date(today);
+    from.setDate(today.getDate() - 90);
 
-    const segments: Array<{ label: string; limit: number; params: Record<string, any> }> = [
-        { label: 'TopRated_All', limit: 6000, params: { ordering: '-rating' } },
-        { label: 'MostAdded_All', limit: 3000, params: { ordering: '-added' } },
-        { label: 'Critic_All', limit: 1200, params: { ordering: '-metacritic' } },
-        { label: 'Recent_24mo', limit: 1200, params: { ordering: '-released', dates: `${d(twoYearsAgo)},${d(today)}` } },
-    ];
-
-    const collected: List[] = [];
-    for (const s of segments) {
-        const batch = await fetchListSegment(s.limit, s.params, s.label);
-        collected.push(...batch);
-    }
-
-    const must = await ensureBySlugOrSearch(
-        [
-            'pong', 'pong-1972', 'pong-arcade', 'pong-atari',
-            'tetris', 'pac-man', 'super-mario-bros', 'doom', 'half-life-2', 'candy-crush-saga'
-        ],
-        { dates: '1970-01-01,1979-12-31' }
+    const res = await fetchListSegment(
+        LATEST_LIMIT, // or whatever cap you want
+        {
+            ordering: '-released',
+            dates: `${d(from)},${d(today)}`,
+        },
+        'Latest_90d'
     );
-    collected.push(...must);
 
-    // de-dupe by RAWG id
-    const seen = new Set<number>();
-    const deduped = collected.filter(g => (seen.has(g.id) ? false : (seen.add(g.id), true)));
-
-    console.log(`🧮 Combined collected=${collected.length}  after de-dup=${deduped.length}`);
-    return deduped;
+    return res;
 }
 
 /* ---------------------------------------------------
@@ -216,7 +158,7 @@ async function run() {
     await mongoose.connect(MONGO);
     console.log('\n✅ Mongo connected');
 
-    const list = await fetchCombined();
+    const list = await fetchLatest();
     console.log(`\n📦 Will process ${list.length} games`);
 
     const docs: ReturnType<typeof map>[] = [];
@@ -240,17 +182,26 @@ async function run() {
     }
     process.stdout.write('\n');
 
-    // Filter NSFW + unwanted platforms, then cap to 10k
+    // Filter NSFW + unwanted platforms
     const cleaned = docs.filter(d => {
         if (NSFW_TITLE_RE.test(d.title || '')) return false;
+
+
+        if (!d.parentPlatforms || d.parentPlatforms.length === 0) return false; // no platformless games
+        if (!d.imageUrl) return false; // no games without artwork
+
         const fromParent = (d.parentPlatforms || []).map(s => String(s).toLowerCase());
         const fromDetailed = ((d as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
         const slugs = new Set([...fromParent, ...fromDetailed]);
-        for (const bad of EXCLUDE_PLATFORMS) if (slugs.has(bad)) return false;
+
+        for (const bad of Array.from(EXCLUDE_PLATFORMS))
+            if (slugs.has(bad)) return false;
+
         return true;
     });
 
-    const finalDocs = cleaned.slice(0, TARGET_COUNT);
+
+    const finalDocs = cleaned;
 
     // Write in chunks
     let upserted = 0, modified = 0;
