@@ -32,6 +32,7 @@ type Detail = List & {
     metacritic_url?: string | null;
     background_image_additional?: string | null;
     short_screenshots?: { image: string }[];
+    tags?: { name: string; slug: string }[];
 };
 
 const toDate = (released: string | null, tba: boolean) =>
@@ -209,6 +210,30 @@ const NSFW_TITLE_RE = /(lust|sex|hentai|porno?|xxx|erotic|nsfw|waifu|strip|3d\s*
 // exclude these platforms entirely
 const EXCLUDE_PLATFORMS = new Set(['linux', 'android', 'web']);
 
+const NSFW_TAG_SLUGS = new Set([
+    'nsfw',
+    'sexual-content',
+    'nudity',
+    'mature',
+    'adult',
+    'porn',
+    'hentai',
+    'eroge',
+]);
+
+const NSFW_TAG_NAME_RE =
+    /(nsfw|nudity|sexual|sex|adult|mature|hentai|erotic|для\s*взрослых)/i;
+
+function hasNSFWTags(d: any): boolean {
+    const tags = d?.tags ?? [];
+    return tags.some(
+        (t: any) =>
+            NSFW_TAG_SLUGS.has((t.slug || '').toLowerCase()) ||
+            NSFW_TAG_NAME_RE.test(t.name || '')
+    );
+}
+
+
 /* ---------------------------------------------------
    Main
 ---------------------------------------------------*/
@@ -219,7 +244,8 @@ async function run() {
     const list = await fetchCombined();
     console.log(`\n📦 Will process ${list.length} games`);
 
-    const docs: ReturnType<typeof map>[] = [];
+    const docs: { doc: ReturnType<typeof map>; detail: Detail }[] = [];
+
     for (let i = 0; i < list.length; i += BATCH) {
         const chunk = list.slice(i, i + BATCH);
 
@@ -227,9 +253,9 @@ async function run() {
             chunk.map(async (g) => {
                 try {
                     const d = await fetchDetail(g.id);
-                    return map(g, d);
+                    return { doc: map(g, d), detail: d };
                 } catch {
-                    return map(g, g as any);
+                    return { doc: map(g, g as any), detail: g as any };
                 }
             })
         );
@@ -241,16 +267,21 @@ async function run() {
     process.stdout.write('\n');
 
     // Filter NSFW + unwanted platforms, then cap to 10k
-    const cleaned = docs.filter(d => {
-        if (NSFW_TITLE_RE.test(d.title || '')) return false;
-        const fromParent = (d.parentPlatforms || []).map(s => String(s).toLowerCase());
-        const fromDetailed = ((d as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
+    const cleaned = docs.filter(({ doc, detail }) => {
+        if (NSFW_TITLE_RE.test(doc.title || '')) return false;
+        if (hasNSFWTags(detail)) return false;
+
+        const fromParent = (doc.parentPlatforms || []).map(s => String(s).toLowerCase());
+        const fromDetailed = ((doc as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
         const slugs = new Set([...fromParent, ...fromDetailed]);
-        for (const bad of EXCLUDE_PLATFORMS) if (slugs.has(bad)) return false;
+
+        for (const bad of EXCLUDE_PLATFORMS)
+            if (slugs.has(bad)) return false;
+
         return true;
     });
 
-    const finalDocs = cleaned.slice(0, TARGET_COUNT);
+    const finalDocs = cleaned.map(x => x.doc).slice(0, TARGET_COUNT);
 
     // Write in chunks
     let upserted = 0, modified = 0;
