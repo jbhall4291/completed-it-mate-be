@@ -35,6 +35,7 @@ type Detail = List & {
     metacritic_url?: string | null;
     background_image_additional?: string | null;
     short_screenshots?: { image: string }[];
+    tags?: { name: string; slug: string }[];
 };
 
 const toDate = (released: string | null, tba: boolean) =>
@@ -151,6 +152,30 @@ const NSFW_TITLE_RE = /(lust|sex|hentai|porno?|xxx|erotic|nsfw|waifu|strip|3d\s*
 // exclude these platforms entirely
 const EXCLUDE_PLATFORMS = new Set(['linux', 'android', 'web']);
 
+const NSFW_TAG_SLUGS = new Set([
+    'nsfw',
+    'sexual-content',
+    'nudity',
+    'mature',
+    'adult',
+    'porn',
+    'hentai',
+    'eroge',
+]);
+
+const NSFW_TAG_NAME_RE =
+    /(nsfw|nudity|sexual|sex|adult|mature|hentai|erotic|для\s*взрослых)/i;
+
+function hasNSFWTags(detail: any): boolean {
+    const tags = detail?.tags ?? [];
+    return tags.some(
+        (t: any) =>
+            NSFW_TAG_SLUGS.has((t.slug || '').toLowerCase()) ||
+            NSFW_TAG_NAME_RE.test(t.name || '')
+    );
+}
+
+
 /* ---------------------------------------------------
    Main
 ---------------------------------------------------*/
@@ -161,7 +186,7 @@ async function run() {
     const list = await fetchLatest();
     console.log(`\n📦 Will process ${list.length} games`);
 
-    const docs: ReturnType<typeof map>[] = [];
+    const docs: { doc: ReturnType<typeof map>; detail: Detail }[] = [];
     for (let i = 0; i < list.length; i += BATCH) {
         const chunk = list.slice(i, i + BATCH);
 
@@ -169,12 +194,15 @@ async function run() {
             chunk.map(async (g) => {
                 try {
                     const d = await fetchDetail(g.id);
-                    return map(g, d);
+                    return { doc: map(g, d), detail: d };
                 } catch {
-                    return map(g, g as any);
+                    return { doc: map(g, g as any), detail: g as any };
                 }
             })
         );
+
+        docs.push(...chunkDocs);
+
 
         docs.push(...chunkDocs);
         process.stdout.write(`\r🔎 Detailed ${Math.min(i + chunk.length, list.length)}/${list.length}`);
@@ -183,25 +211,60 @@ async function run() {
     process.stdout.write('\n');
 
     // Filter NSFW + unwanted platforms
-    const cleaned = docs.filter(d => {
-        if (NSFW_TITLE_RE.test(d.title || '')) return false;
 
+    const rejected: { title: string; reason: string }[] = [];
 
-        if (!d.parentPlatforms || d.parentPlatforms.length === 0) return false; // no platformless games
-        if (!d.imageUrl) return false; // no games without artwork
+    const cleaned = docs.filter(({ doc, detail }) => {
+        if (NSFW_TITLE_RE.test(doc.title || '')) {
+            rejected.push({ title: doc.title, reason: 'title' });
+            return false;
+        }
 
-        const fromParent = (d.parentPlatforms || []).map(s => String(s).toLowerCase());
-        const fromDetailed = ((d as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
+        if (hasNSFWTags(detail)) {
+            rejected.push({ title: doc.title, reason: 'tags' });
+            return false;
+        }
+
+        if (!doc.parentPlatforms || doc.parentPlatforms.length === 0) {
+            rejected.push({ title: doc.title, reason: 'no_platforms' });
+            return false;
+        }
+
+        if (!doc.imageUrl) {
+            rejected.push({ title: doc.title, reason: 'no_image' });
+            return false;
+        }
+
+        const fromParent = (doc.parentPlatforms || []).map(s => String(s).toLowerCase());
+        const fromDetailed = ((doc as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
         const slugs = new Set([...fromParent, ...fromDetailed]);
 
-        for (const bad of Array.from(EXCLUDE_PLATFORMS))
-            if (slugs.has(bad)) return false;
+        for (const bad of EXCLUDE_PLATFORMS) {
+            if (slugs.has(bad)) {
+                rejected.push({ title: doc.title, reason: `platform:${bad}` });
+                return false;
+            }
+        }
 
         return true;
     });
 
 
-    const finalDocs = cleaned;
+
+    const finalDocs = cleaned.map(x => x.doc);
+
+    if (rejected.length) {
+        console.log(`🚫 Rejected ${rejected.length} games (sample):`);
+        rejected
+            .slice(0, 20)
+            .forEach(r => console.log(`  - ${r.title} [${r.reason}]`));
+
+        if (rejected.length > 20) {
+            console.log(`  …and ${rejected.length - 20} more`);
+        }
+    }
+
+
 
     // Write in chunks
     let upserted = 0, modified = 0;
