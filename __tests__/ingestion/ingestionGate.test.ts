@@ -6,40 +6,44 @@ const baseDoc = {
 };
 
 describe('ingestionGate', () => {
-  describe('desktop-only platform exclusion', () => {
-    it.each([
-      [['pc'], false],
-      [['mac'], false],
-      [['web'], false],
-      [['pc', 'mac'], false],
-      [['pc', 'web'], false],
-      [['mac', 'web'], false],
-      [['pc', 'mac', 'web'], false],
-      [['pc', 'ps5'], true],
-      [['xbox-one'], true],
-      [['switch'], true],
-    ])(
-      'platforms %j → allowed=%s',
-      (platforms, allowed) => {
-        const res = shouldIngestGame(
-          {
-            ...baseDoc,
-            parentPlatforms: platforms as string[],
-          },
-          {}
-        );
+  /* ---------------------------------------------------
+     Non-latin title guard
+  --------------------------------------------------- */
 
-        expect(res.allowed).toBe(allowed);
+  describe('non-latin title guard', () => {
+    it('rejects titles that are mostly non-latin', () => {
+      const res = shouldIngestGame(
+        {
+          title: '只有文字的恐怖遊戲測試測試測試',
+          imageUrl: 'https://example.com/image.jpg',
+          parentPlatforms: ['playstation'],
+        },
+        {}
+      );
 
-        if (!allowed) {
-          expect(res).toEqual({
-            allowed: false,
-            reason: 'platform_excluded',
-          });
-        }
-      }
-    );
+      expect(res).toEqual({
+        allowed: false,
+        reason: 'non_latin_title',
+      });
+    });
+
+    it('allows mixed or mostly latin titles', () => {
+      const res = shouldIngestGame(
+        {
+          title: 'Resident Evil 漢字',
+          imageUrl: 'https://example.com/image.jpg',
+          parentPlatforms: ['playstation'],
+        },
+        {}
+      );
+
+      expect(res.allowed).toBe(true);
+    });
   });
+
+  /* ---------------------------------------------------
+     Platform presence requirement
+  --------------------------------------------------- */
 
   describe('platform presence requirement', () => {
     it('rejects when no parentPlatforms and no platformsDetailed', () => {
@@ -57,11 +61,23 @@ describe('ingestionGate', () => {
       });
     });
 
-    it('allows when platformsDetailed is present', () => {
+    it('allows when only parentPlatforms are present', () => {
       const res = shouldIngestGame(
         {
           ...baseDoc,
-          platformsDetailed: [{ slug: 'ps5' }],
+          parentPlatforms: ['playstation'],
+        },
+        {}
+      );
+
+      expect(res.allowed).toBe(true);
+    });
+
+    it('allows when only platformsDetailed are present', () => {
+      const res = shouldIngestGame(
+        {
+          ...baseDoc,
+          platformsDetailed: [{ slug: 'playstation' }],
         },
         {}
       );
@@ -70,12 +86,16 @@ describe('ingestionGate', () => {
     });
   });
 
+  /* ---------------------------------------------------
+     Image requirement
+  --------------------------------------------------- */
+
   describe('image requirement', () => {
     it('rejects when imageUrl is missing', () => {
       const res = shouldIngestGame(
         {
           title: 'No Image',
-          parentPlatforms: ['ps5'],
+          parentPlatforms: ['playstation'],
         },
         {}
       );
@@ -87,34 +107,73 @@ describe('ingestionGate', () => {
     });
   });
 
-  describe('non-latin title guard', () => {
-    it('rejects titles that are mostly non-latin', () => {
+  /* ---------------------------------------------------
+     Platform hygiene (desktop-only exclusion)
+  --------------------------------------------------- */
+
+  describe('platform hygiene', () => {
+    it.each([
+      [['pc'], false],
+      [['mac'], false],
+      [['web'], false],
+      [['pc', 'mac'], false],
+      [['pc', 'web'], false],
+      [['mac', 'web'], false],
+      [['pc', 'mac', 'web'], false],
+
+      [['playstation'], true],
+      [['xbox'], true],
+      [['nintendo'], true],
+      [['pc', 'playstation'], true],
+      [['web', 'xbox'], true],
+    ])(
+      'parentPlatforms %j → allowed=%s',
+      (parentPlatforms, allowed) => {
+        const res = shouldIngestGame(
+          {
+            ...baseDoc,
+            parentPlatforms: parentPlatforms as string[],
+          },
+          {}
+        );
+
+        expect(res.allowed).toBe(allowed);
+
+        if (!allowed) {
+          expect(res).toEqual({
+            allowed: false,
+            reason: 'platform_excluded',
+          });
+        }
+      }
+    );
+
+    it('allows console via platformsDetailed even if parentPlatforms are desktop-only', () => {
       const res = shouldIngestGame(
         {
-          title: '只有文字的恐怖遊戲測試測試測試',
-          imageUrl: 'https://example.com/image.jpg',
-          parentPlatforms: ['ps5'],
+          ...baseDoc,
+          parentPlatforms: ['pc'],
+          platformsDetailed: [{ slug: 'playstation' }],
+        },
+        {}
+      );
+
+      expect(res.allowed).toBe(true);
+    });
+
+    it('rejects if platformsDetailed are desktop-only', () => {
+      const res = shouldIngestGame(
+        {
+          ...baseDoc,
+          platformsDetailed: [{ slug: 'pc' }],
         },
         {}
       );
 
       expect(res).toEqual({
         allowed: false,
-        reason: 'non_latin_title',
+        reason: 'platform_excluded',
       });
-    });
-
-    it('allows mixed or mostly latin titles', () => {
-      const res = shouldIngestGame(
-        {
-          title: 'Resident Evil 漢字',
-          imageUrl: 'https://example.com/image.jpg',
-          parentPlatforms: ['ps5'],
-        },
-        {}
-      );
-
-      expect(res.allowed).toBe(true);
     });
   });
 });
