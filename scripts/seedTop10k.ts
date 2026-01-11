@@ -3,6 +3,9 @@ import 'dotenv/config';
 import axios, { AxiosResponse } from 'axios';
 import mongoose from 'mongoose';
 import { GameModel } from '../src/models/Game';
+import shouldIngestGame from '../src/ingestion/ingestionGate';
+import type { RejectReason } from '../src/ingestion/ingestionGate';
+
 
 const MONGO = process.env.MONGO_URI!;
 const KEY = process.env.RAWG_API_KEY!;
@@ -10,9 +13,11 @@ const RAWG = 'https://api.rawg.io/api';
 
 const PAGE_SIZE = 40;
 const BATCH = 8;                // "concurrency" via chunking loop
-const PAGE_DELAY_MS = 120;      // polite delay between list pages
+const PAGE_DELAY_MS = 200;      // polite delay between list pages
 const CHUNK_WRITE = 1000;       // bulkWrite chunk size
 const TARGET_COUNT = 10_000;    // final cap
+const DETAIL_CAP = 12_000;
+
 
 type List = {
     id: number; slug: string; name: string;
@@ -203,36 +208,6 @@ const map = (l: List, d: Detail) => ({
     metacritic: d.metacritic != null ? { score: d.metacritic, url: d.metacritic_url ?? '' } : null,
 });
 
-/* ---------------------------------------------------
-   Hygiene
----------------------------------------------------*/
-const NSFW_TITLE_RE = /(lust|sex|hentai|porno?|xxx|erotic|nsfw|waifu|strip|3d\s*sex|hot\s*girls?)/i;
-// exclude these platforms entirely
-const EXCLUDE_PLATFORMS = new Set(['linux', 'android', 'web']);
-
-const NSFW_TAG_SLUGS = new Set([
-    'nsfw',
-    'sexual-content',
-    'nudity',
-    'mature',
-    'adult',
-    'porn',
-    'hentai',
-    'eroge',
-]);
-
-const NSFW_TAG_NAME_RE =
-    /(nsfw|nudity|sexual|sex|adult|mature|hentai|erotic|для\s*взрослых)/i;
-
-function hasNSFWTags(d: any): boolean {
-    const tags = d?.tags ?? [];
-    return tags.some(
-        (t: any) =>
-            NSFW_TAG_SLUGS.has((t.slug || '').toLowerCase()) ||
-            NSFW_TAG_NAME_RE.test(t.name || '')
-    );
-}
-
 
 /* ---------------------------------------------------
    Main
@@ -242,12 +217,31 @@ async function run() {
     console.log('\n✅ Mongo connected');
 
     const list = await fetchCombined();
-    console.log(`\n📦 Will process ${list.length} games`);
+
+    const prefiltered = list.filter(l => {
+        if (!l.background_image) return false;
+
+        const hasParent = (l.parent_platforms?.length ?? 0) > 0;
+        const hasDetailed = (l.platforms?.length ?? 0) > 0;
+
+        return hasParent || hasDetailed;
+    });
+
+    console.log(`🧹 Prefiltered ${list.length} → ${prefiltered.length}`);
+
+    console.log(`\n📦 Will process ${prefiltered.length} games`);
+
 
     const docs: { doc: ReturnType<typeof map>; detail: Detail }[] = [];
 
-    for (let i = 0; i < list.length; i += BATCH) {
-        const chunk = list.slice(i, i + BATCH);
+    for (let i = 0; i < prefiltered.length && docs.length < DETAIL_CAP; i += BATCH) {
+
+        const chunk = prefiltered.slice(i, i + BATCH);
+
+        process.stdout.write(
+            `\r🔎 Detailed ${docs.length}/${DETAIL_CAP} (cap)`
+        );
+
 
         const chunkDocs = await Promise.all(
             chunk.map(async (g) => {
@@ -260,26 +254,47 @@ async function run() {
             })
         );
 
-        docs.push(...chunkDocs);
-        process.stdout.write(`\r🔎 Detailed ${Math.min(i + chunk.length, list.length)}/${list.length}`);
+        for (const d of chunkDocs) {
+            if (docs.length >= DETAIL_CAP) break;
+            docs.push(d);
+        }
+
         await delay(80);
     }
     process.stdout.write('\n');
 
-    // Filter NSFW + unwanted platforms, then cap to 10k
+    const rejected: Partial<Record<
+        RejectReason,
+        { count: number; samples: string[] }
+    >> = {};
+
     const cleaned = docs.filter(({ doc, detail }) => {
-        if (NSFW_TITLE_RE.test(doc.title || '')) return false;
-        if (hasNSFWTags(detail)) return false;
+        const res = shouldIngestGame(doc, detail);
 
-        const fromParent = (doc.parentPlatforms || []).map(s => String(s).toLowerCase());
-        const fromDetailed = ((doc as any).platformsDetailed || []).map((p: any) => (p?.slug || '').toLowerCase());
-        const slugs = new Set([...fromParent, ...fromDetailed]);
+        if (res.allowed === false) {
+            if (!rejected[res.reason]) {
+                rejected[res.reason] = { count: 0, samples: [] };
+            }
 
-        for (const bad of EXCLUDE_PLATFORMS)
-            if (slugs.has(bad)) return false;
+            rejected[res.reason]!.count++;
+
+            if (rejected[res.reason]!.samples.length < 5) {
+                rejected[res.reason]!.samples.push(doc.title || '(untitled)');
+            }
+
+            return false;
+        }
 
         return true;
     });
+
+    console.log('\n🚫 Rejection summary:');
+    for (const [reason, data] of Object.entries(rejected)) {
+        console.log(`\n• ${reason}: ${data!.count}`);
+        data!.samples.forEach(t => console.log(`   - ${t}`));
+    }
+
+
 
     const finalDocs = cleaned.map(x => x.doc).slice(0, TARGET_COUNT);
 
