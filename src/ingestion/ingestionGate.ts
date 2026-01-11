@@ -17,6 +17,17 @@ const DESKTOP_PLATFORMS = new Set([
   'web',
 ]);
 
+const CONSOLE_PLATFORMS = new Set([
+  'playstation',
+  'xbox',
+  'nintendo',
+  'sega',
+  'commodore-amiga',
+  'atari',
+  '3do',
+  'neo-geo',
+]);
+
 const NON_LATIN_RE = /[^\p{Script=Latin}\d\s:'".\-–—!?,()]/u;
 
 function isMostlyNonLatin(text: string): boolean {
@@ -75,13 +86,11 @@ export default function shouldIngestGame(
   ]);
 
   // Desktop-only games (PC / Mac / Web) → reject
-  if (
-    slugs.size > 0 &&
-    [...slugs].every(s => DESKTOP_PLATFORMS.has(s))
-  ) {
+  const hasConsole = [...slugs].some(s => CONSOLE_PLATFORMS.has(s));
+
+  if (!hasConsole) {
     return { allowed: false, reason: 'platform_excluded' };
   }
-
 
   return { allowed: true };
 }
