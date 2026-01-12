@@ -15,6 +15,10 @@ export const getUsers = async (_req: Request, res: Response) => {
   try {
     const users = await UserModel.find()
       .select('-email -isRealUser')
+      .sort({
+        username: -1,     // users with usernames first (nulls last)
+        createdAt: -1     // newest first within each group
+      })
       .populate('gameCount')
       .lean()
       .exec();

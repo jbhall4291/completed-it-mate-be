@@ -12,10 +12,12 @@ describe("GET /api/users", () => {
         const exec = jest.fn().mockResolvedValue(users);
         const queryMock = {
             select: jest.fn().mockReturnThis(),
+            sort: jest.fn().mockReturnThis(),
             populate: jest.fn().mockReturnThis(),
             lean: jest.fn().mockReturnThis(),
             exec,
         };
+
 
         jest.spyOn(UserModel, "find").mockReturnValueOnce(queryMock as any);
 
