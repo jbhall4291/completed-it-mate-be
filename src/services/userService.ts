@@ -105,4 +105,5 @@ export const updateUsernameService = async (userId: string, username: string) =>
 export const toSafeUser = (user: any) => ({
   userId: user._id?.toString(),
   username: user.username ?? null,
+  createdAt: user.createdAt,
 });
