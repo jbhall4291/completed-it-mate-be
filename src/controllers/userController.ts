@@ -13,21 +13,53 @@ import {
 // GET /api/users
 export const getUsers = async (_req: Request, res: Response) => {
   try {
-    const users = await UserModel.find()
-      .select('-email -isRealUser')
-      .sort({
-        username: -1,     // users with usernames first (nulls last)
-        createdAt: -1     // newest first within each group
-      })
-      .populate('gameCount')
-      .lean()
-      .exec();
+    const users = await UserModel.aggregate([
+      {
+        $lookup: {
+          from: 'usergames',
+          localField: '_id',
+          foreignField: 'userId',
+          as: 'games'
+        }
+      },
+      {
+        $addFields: {
+          completedCount: {
+            $size: {
+              $filter: {
+                input: '$games',
+                as: 'g',
+                cond: { $eq: ['$$g.status', 'completed'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          games: 0,
+          email: 0,
+          isRealUser: 0,
+          __v: 0
+        }
+      },
+      {
+        $sort: {
+          username: -1,
+          createdAt: -1
+        }
+      }
+    ]);
 
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching users", error });
+    res.status(500).json({
+      message: 'Error fetching users',
+      error
+    });
   }
 };
+
 
 // GET /api/users/:id
 export const getUserById = async (req: Request, res: Response) => {
