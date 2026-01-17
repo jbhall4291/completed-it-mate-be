@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { UserModel } from "../models/User";
+import { UserGameModel } from "../models/UserGame";
 import {
   addUserService,
   getUserByIdService,
@@ -143,5 +144,19 @@ export const patchMe = async (req: Request, res: Response) => {
     return res
       .status(error?.status || 400)
       .json({ message: error?.message || "Error updating username" });
+  }
+};
+
+// DELETE /api/users/me/library
+export const resetMyLibrary = async (req: Request, res: Response) => {
+  const userId = requireUserIdHeader(req, res);
+  if (!userId) return;
+
+  try {
+    await UserGameModel.deleteMany({ userId });
+    return res.sendStatus(204);
+  } catch (error) {
+    console.error("Error resetting user library:", error);
+    return res.status(500).json({ message: "Error resetting library" });
   }
 };
