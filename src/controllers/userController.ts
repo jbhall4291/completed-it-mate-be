@@ -38,6 +38,7 @@ export const getUsers = async (_req: Request, res: Response) => {
       },
       {
         $project: {
+          _id: 0,
           games: 0,
           email: 0,
           isRealUser: 0,
