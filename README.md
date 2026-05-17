@@ -11,7 +11,7 @@ Fully tested via **GitHub Actions CI** with automated coverage reporting.
 ## Responsibilities
 
 - REST API for user libraries, game status updates, and community statistics
-- Weekly scheduled ingestion job (cron) to add new releases/upcert existing games
+- Weekly scheduled ingestion job (cron) to add new releases/upsert existing games
 - Manual seed and maintenance scripts used during development and iteration
 
 ## Related
